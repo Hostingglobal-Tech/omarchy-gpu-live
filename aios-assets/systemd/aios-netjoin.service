@@ -1,0 +1,16 @@
+[Unit]
+Description=AI-OS: 부팅 즉시 우리 tailscale 망에 붙는다
+Documentation=file:///etc/aios-release
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/aios/tailscale.key
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/aios-netjoin
+StandardOutput=journal+console
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

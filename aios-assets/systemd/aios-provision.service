@@ -1,0 +1,15 @@
+[Unit]
+Description=AI-OS: NVIDIA GPU 스택을 원격에서 받아 설치한다
+Documentation=file:///etc/aios-release
+After=aios-netjoin.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/aios-provision
+StandardOutput=journal+console
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

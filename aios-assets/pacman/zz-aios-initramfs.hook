@@ -1,0 +1,29 @@
+# AI-OS: 고전 배치의 initramfs 를 되살린다.
+#
+# omarchy 의 하드 의존성 limine-mkinitcpio-hook 이 커널 설치를 가로챈다.
+#   - etc/pacman.d/hooks/90-mkinitcpio-install.hook  (기본 훅과 같은 이름 -> 대체)
+#   - usr/local/bin/mkinitcpio                       (PATH 에서 /usr/bin 을 가림)
+# 그래서 initramfs 가 limine 배치(/boot/<machine-id>/)로만 만들어지고
+# mkarchiso 가 찾는 /boot/initramfs-linux-t2.img 는 끝내 안 생긴다.
+#
+# 커널 이미지도 안 옮겨진다. 커널 패키지는 /boot 에 아무것도 안 넣고
+# usr/lib/modules/<kver>/vmlinuz 만 깐다 - 그걸 /boot 로 옮기는 것이 바로 그 대체된
+# 훅의 일이었다. 그래서 limine 이 'FAT32 boot partition not found' 로 죽으면
+# /boot/vmlinuz-linux-t2 조차 안 생기고, mkinitcpio 는 '-k ... must be readable' 로 실패한다.
+#
+# 이 훅은 이름이 zz- 라 마지막에 돌고, (1) 각 커널의 vmlinuz 를 pkgbase 이름으로
+# /boot 에 옮긴 뒤 (2) 가려진 /usr/bin/mkinitcpio 를 절대경로로 직접 불러 preset 대로
+# initramfs 를 만든다. limine 쪽 산출물은 그대로 두므로 설치 경로는 건드리지 않는다.
+
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = linux-t2
+Target = linux
+Target = mkinitcpio
+
+[Action]
+Description = AI-OS: mkarchiso 가 찾는 /boot/initramfs-linux-t2.img 를 생성한다
+When = PostTransaction
+Exec = /usr/bin/bash -c 'for d in /usr/lib/modules/*/; do b=$(cat "$d/pkgbase" 2>/dev/null); [ -n "$b" ] || continue; [ -e "$d/vmlinuz" ] || continue; install -Dm644 "$d/vmlinuz" "/boot/vmlinuz-$b"; done; /usr/bin/mkinitcpio -P'

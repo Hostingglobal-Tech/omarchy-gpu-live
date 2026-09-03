@@ -1,0 +1,13 @@
+[Unit]
+Description=AI-OS: 라이브 세션 표시판 - 이 기계가 무엇이 되었는지 스스로 보고한다
+Documentation=file:///etc/aios-release
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/foot --title "AI-OS" --font "D2Coding:size=13" -e /usr/local/bin/aios-demo
+Restart=no
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,3 @@
+# 라이브 세션의 aios 는 이 기계의 주인이다. 시연·복구 중에 암호를 물어볼 사람이 없다.
+# archiso 기본 sudoers 는 asdcontrol 둘만 허용해 부팅 후 아무것도 고칠 수 없었다.
+aios ALL=(ALL) NOPASSWD: ALL

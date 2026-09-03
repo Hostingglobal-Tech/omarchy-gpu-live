@@ -1,0 +1,19 @@
+# AI-OS: omarchy first-run 토스트 2종 무력화
+#
+# welcome.sh 는 'Learn Keybindings', wifi.sh 는 'Update System'/'Setup Wi-Fi' 를
+# 매 부팅 critical 토스트로 띄운다. 둘 다 알림 발송 외 기능이 없다(Fable 소스 전수확인).
+# 특히 'Update System' 을 누르면 omarchy-update 가 돌아 '10 GiB free' 오류가 난다 -
+# 라이브 루트는 tmpfs 4G 라 원리적으로 충족 불가다(실측 2026-08-24).
+#
+# ★파일을 airootfs 에 미리 두면 pacman 이 omarchy 를 깔 때 파일 충돌로 빌드가 죽는다.
+# 그래서 설치가 끝난 뒤 덮어쓴다.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = omarchy
+
+[Action]
+Description = AI-OS: omarchy first-run 토스트 무력화
+When = PostTransaction
+Exec = /bin/sh -c 'for f in welcome.sh wifi.sh; do t=/usr/share/omarchy/install/user/first-run/$f; [ -e "$t" ] && printf "#!/bin/bash\nexit 0\n" > "$t" && chmod 755 "$t"; done; true'

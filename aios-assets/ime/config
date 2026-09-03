@@ -1,0 +1,14 @@
+[Hotkey]
+# 한/영 전환 - 오른쪽 Alt(한글 키) 와 Shift+Space 둘 다
+TriggerKeys=
+EnumerateWithTriggerKeys=True
+AltTriggerKeys=
+
+[Hotkey/TriggerKeys]
+0=Hangul
+1=Shift+space
+
+[Behavior]
+ActiveByDefault=False
+ShareInputState=No
+PreeditEnabledByDefault=True

@@ -1,0 +1,15 @@
+[Unit]
+Description=AI-OS: USB 데이터 파티션의 자산을 물린다
+Documentation=file:///usr/share/aios/design.md
+After=local-fs.target systemd-udev-settle.service
+Wants=systemd-udev-settle.service
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/aios-assets
+# 자산이 없어도 부팅은 계속된다 — 바이너리가 실패를 삼키고 0 을 낸다.
+
+[Install]
+WantedBy=multi-user.target

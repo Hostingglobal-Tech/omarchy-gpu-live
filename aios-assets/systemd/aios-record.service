@@ -1,0 +1,12 @@
+[Unit]
+Description=AI-OS 라이브 세션 화면 자동 녹화
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/aios-record
+Restart=no
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,10 @@
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = omarchy
+
+[Action]
+Description = AI-OS: 한글 입력기 기동 배선 (fcitx5 exec-once + 세션 환경변수)
+When = PostTransaction
+Exec = /usr/local/bin/aios-hangul-wire

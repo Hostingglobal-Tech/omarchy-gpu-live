@@ -1,0 +1,15 @@
+[Unit]
+Description=AI-OS: 부팅하면 AI 가 먼저 오늘 할 일을 말한다
+Documentation=file:///etc/aios-release
+After=aios-netjoin.service aios-agentauth.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/aios-brief
+StandardOutput=journal+console
+TimeoutStartSec=200
+
+[Install]
+WantedBy=graphical-session.target

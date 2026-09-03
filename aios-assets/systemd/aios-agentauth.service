@@ -1,0 +1,16 @@
+[Unit]
+Description=AI-OS: 에이전트 계정 자격을 우리 망 안에서 받는다
+Documentation=file:///etc/aios-release
+After=aios-netjoin.service aios-live-session.service
+Requires=aios-live-session.service
+ConditionPathExists=/etc/aios/provision.url
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/aios-agentauth
+StandardOutput=journal+console
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

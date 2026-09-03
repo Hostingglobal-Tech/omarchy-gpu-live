@@ -1,0 +1,16 @@
+[Unit]
+Description=AI-OS: 라이브 USB 에서 데스크톱 사용자를 준비한다
+Documentation=file:///etc/aios-release
+After=local-fs.target
+Before=sddm.service display-manager.service
+ConditionPathExists=!/run/aios/live-session.done
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/aios-live-session
+StandardOutput=journal+console
+TimeoutStartSec=30
+
+[Install]
+WantedBy=graphical.target

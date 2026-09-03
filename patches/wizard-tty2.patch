@@ -1,0 +1,21 @@
+diff --git a/configs/airootfs/root/.automated_script.sh b/configs/airootfs/root/.automated_script.sh
+index 16904f8..0c7350a 100644
+--- a/configs/airootfs/root/.automated_script.sh
++++ b/configs/airootfs/root/.automated_script.sh
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env bash
+ #
+-# Live ISO entry point on tty1: set up the live VT, run the configurator
++# Live ISO entry point on tty2: set up the live VT, run the configurator
+ # wizard, then hand off to the Python install orchestrator. Mirrors the
+ # stream/env contract from the previously-working installer:
+ #   - stdout teed to /var/log/omarchy-install.log (CSI-stripped) AND to tty
+@@ -10,7 +10,7 @@
+ #   - COLUMNS/LINES so gum picks up real terminal size
+ set -euo pipefail
+ 
+-[[ $(tty) == /dev/tty1 ]] || exit 0
++[[ $(tty) == /dev/tty2 ]] || exit 0
+ 
+ export OMARCHY_MIRROR="$(cat /root/omarchy_mirror)"
+ if [[ -f /root/omarchy_iso_ref ]]; then

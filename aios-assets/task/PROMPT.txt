@@ -1,0 +1,13 @@
+아래 systemd 유닛은 부팅할 때만 간헐적으로 실패하고, 손으로 다시 돌리면 항상 성공한다.
+원인을 한 문장으로 지목하고 고친 유닛 전문을 출력하라. 설명은 세 줄을 넘기지 마라.
+
+[Unit]
+Description=telemetry collector
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/collect --endpoint https://api.example.com/v1/push
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,63 @@
+--- a/builder/build-iso.sh
++++ b/builder/build-iso.sh
+@@ -119,6 +119,57 @@
+ # drops Omarchy's plymouthd.conf into /etc/plymouth before mkarchiso builds the
+ # live initramfs.
+ arch_packages=(linux-t2 git gum jq openssl plymouth ttfx tzupdate omarchy-keyring "$OMARCHY_SETTINGS_PACKAGE" lvm2 cryptsetup parted)
++
++# AI-OS: 라이브 데스크톱. 상류 ISO 는 설치 전용이라 라이브 root 에 데스크톱이
++# 하나도 없다 - USB 로 부팅하면 설치 마법사만 뜬다. 런타임 패키지를 라이브
++# 환경에도 넣어 꽂으면 바로 Hyprland 가 뜨게 한다. 설치 경로는 그대로 남는다
++# (마법사는 tty2 로 옮겨 sddm 과 안 싸운다).
++#
++# foot + xdg-terminal-exec 는 따로 넣어야 한다. omarchy 런타임 패키지는 터미널을
++# 하드 의존하지 않고 설치기가 나중에 고르므로, 라이브 root 에는 네 터미널의 설정
++# 파일만 깔리고 실행기는 하나도 없다. 실측(빌드4): Super+Return 이
++# 'Command not found: xdg-terminal-exec' 로 실패했다. 터미널이 없으면 ISO 안의
++# claude/codex 를 띄울 수가 없다. 기본 터미널은 omarchy 의
++# hyprland-xdg-terminals.list 가 foot.desktop 으로 정한다.
++#
++# wf-recorder - aios-record 가 화면을 스스로 녹화한다. 시연을 폰으로 들고 찍지
++# 않아도 되게 하는 것이 목적이다. 없으면 aios-record 는 조용히 건너뛴다.
++if [[ ${AIOS_LIVE_DESKTOP:-1} == 1 ]]; then
++  arch_packages+=("$OMARCHY_RUNTIME_PACKAGE" claude-code openai-codex-bin foot xdg-terminal-exec tailscale wf-recorder)
++
++  # AI-OS: NVIDIA 스택을 ISO 를 만들 때 굽는다.
++  #
++  # 원래는 부팅한 뒤 받아서 DKMS 로 빌드했다. 그것이 실기기 두 대(RTX 5070,
++  # RTX 5060)를 연달아 죽였다 - 라이브 루트는 통째로 RAM 이고 스왑이 없는데,
++  # 내려받기 + 헤더 + 툴체인 + DKMS 빌드가 2.5~3.5GB 를 그 위에 쌓는다.
++  # cow 가 4G 이므로 그 자리에서 OOM 이 나고, tmpfs 페이지는 프로세스를 죽여도
++  # 회수되지 않아 연쇄로 무너진다(화면 정지 + 망 단절이 동시에 왔다).
++  #
++  # chroot 안에서 설치하면 DKMS 가 빌드 시점에 컴파일해 모듈이 이미지에 들어간다.
++  # 부팅 후에 남는 일은 modprobe 한 줄뿐 - RAM 소모 0, 네트워크 불필요,
++  # 커널과 헤더 버전이 어긋날 여지도 없다.
++  #
++  # nvidia-open-dkms 하나만 넣는다. 2025-12-20 아치 공지로 nvidia-dkms 는
++  # nvidia-open-dkms 로 대체돼 사라졌고, Turing 이후 세대는 이것이 정본이다.
++  arch_packages+=(linux-t2-headers nvidia-open-dkms nvidia-utils)
++
++  # AI-OS: 네트워크 관리자. 라이브 root 에는 iwd 만 있어서 Wi-Fi 를 명령줄로만
++  # 잡을 수 있었다(실측 2026-08-24: 사장님 노트북에서 Wi-Fi 가 안 잡혔다).
++  # omarchy 상단바의 망 위젯도 NetworkManager 를 전제로 한다.
++  # iwd 를 백엔드로 두면 이미 있는 드라이버·펌웨어를 그대로 쓴다.
++  arch_packages+=(networkmanager)
++
++  # hyprsunset — omarchy 도구가 전제하는데 라이브 패키지 목록에 빠져 있었다.
++  # chromium — 바탕화면 웹앱 아이콘이 브라우저를 찾는다. 없으면 아무거나 눌러도
++  # 'Path "--app=https://..." does not exist!' 가 뜬다(실측 2026-08-24).
++  arch_packages+=(hyprsunset chromium wayvnc python-pytorch-cuda python-pip python-numpy)
++
++  # 한글 입력기. 폰트(D2Coding)만 있고 입력기가 없어서 글자는 보이는데
++  # 칠 수가 없었다(실측 2026-08-25 사장님 노트북). omarchy 에는
++  # omarchy-fcitx5.service 유닛이 이미 있는데 본체가 없어 헛돌고 있었다.
++  # 용량은 수 MB 라 cow 4G 와 무관하다.
++  arch_packages+=(fcitx5 fcitx5-hangul fcitx5-configtool fcitx5-gtk fcitx5-qt)
++fi
+ printf '%s\n' "${arch_packages[@]}" >> "$build_cache_dir/packages.x86_64"
+ 
+ # The live ISO boots linux-t2 (see airootfs/etc/mkinitcpio.d/linux-t2.preset), so
+
+
+

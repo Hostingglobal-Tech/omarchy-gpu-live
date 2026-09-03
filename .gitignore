@@ -1,0 +1,9 @@
+/out/
+/work/
+/release/
+*.iso
+*.iso.part*
+*.tar.zst
+target/
+.secrets/
+*.bak-*

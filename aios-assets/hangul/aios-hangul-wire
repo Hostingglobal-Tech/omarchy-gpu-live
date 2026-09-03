@@ -1,0 +1,28 @@
+#!/bin/sh
+# AI-OS: 한글 입력기 기동 배선 (2026-08-28 진단, 2026-08-31 복원)
+#
+# omarchy 의 fcitx5 유닛은 /usr/share/omarchy/default/systemd/user/ 에 있는데
+# 거긴 systemd 유닛 탐색 경로가 아니다 — enable 이전에 로드 대상조차 아니다.
+# 설치형은 first-run 스크립트가 홈으로 링크해 살려주지만 라이브 ISO 는 아무도 안 띄운다.
+# 그래서 (1) autostart.lua 에서 직접 띄우고 (2) 환경변수는 pam_env 경로로 넣는다.
+L=/usr/share/omarchy/default/hypr/autostart.lua
+if [ -f "$L" ] && ! grep -q "fcitx5" "$L"; then
+  sed -i "s|^\(\s*\)hl.exec_cmd(\"omarchy-launch-shell\")|\1hl.exec_cmd(\"fcitx5 --disable notificationitem\")\n&|" "$L"
+fi
+# /etc/environment 는 pam_env 가 읽어 세션 전체에 적용된다.
+# (/etc/environment.d 는 systemd user manager 전용이라 uwsm 세션이 아니면 앱에 안 닿는다)
+E=/etc/environment
+if ! grep -q "XMODIFIERS" "$E" 2>/dev/null; then
+  {
+    echo "# AI-OS: 한글 입력기. GTK_IM_MODULE 은 업스트림 omarchy 를 따라 지정하지 않는다"
+    echo "# (GTK3/4 는 wayland text-input-v3 로 컴포지터를 경유한다)"
+    echo "INPUT_METHOD=fcitx"
+    echo "QT_IM_MODULE=fcitx"
+    echo "XMODIFIERS=@im=fcitx"
+    echo "SDL_IM_MODULE=fcitx"
+  } >> "$E"
+fi
+# xdg autostart 경로는 꺼서 이중 기동을 막는다 (업스트림 omarchy 방식)
+D=/etc/xdg/autostart/org.fcitx.Fcitx5.desktop
+[ -f "$D" ] && ! grep -q "^Hidden=true" "$D" && echo "Hidden=true" >> "$D"
+exit 0

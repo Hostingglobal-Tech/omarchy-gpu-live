@@ -1,0 +1,50 @@
+diff --git a/bin/omarchy-iso-make b/bin/omarchy-iso-make
+index e8195b4..15147ca 100755
+--- a/bin/omarchy-iso-make
++++ b/bin/omarchy-iso-make
+@@ -128,6 +128,7 @@ DOCKER_ARGS=(
+   -e "OMARCHY_INSTALL_DEBUG=${OMARCHY_INSTALL_DEBUG:-}"
+   -e "HOST_UID=$(id -u)"
+   -e "HOST_GID=$(id -g)"
++  -e "AIOS_NO_OFFLINE_MIRROR=${AIOS_NO_OFFLINE_MIRROR:-}"
+   -v "$BUILD_RELEASE_PATH/:/out/"
+   -v "$BUILD_ROOT/$BUILD_SCRIPT:/$BUILD_SCRIPT:ro"
+   -v "$BUILD_ROOT/archiso:/archiso:ro"
+diff --git a/builder/build-iso.sh b/builder/build-iso.sh
+index db8daa2..37d7eb5 100755
+--- a/builder/build-iso.sh
++++ b/builder/build-iso.sh
+@@ -347,8 +347,33 @@ fi
+ cp "$build_cache_dir/pacman-offline.conf" "$build_cache_dir/airootfs/etc/pacman.conf"
+ 
+ # Build the ISO.
++# [AI-OS] 오프라인 설치용 미러를 ISO 에서 뺀다. 우리는 호스트 디스크에 설치하지
++# 않으므로 이 미러(약 4.5GB)는 쓰이지 않으면서 ISO 를 FAT32 단일 파일 상한
++# 4GiB 위로 밀어올린다. 이 경로는 호스트 웜 캐시의 bind mount 라 지우면 안 된다 —
++# 빈 디렉토리를 위에 덮어 mkarchiso 에게만 안 보이게 하고 끝나면 되돌린다.
++# 상류 동작은 그대로다 - 환경변수를 준 빌드에서만 발동한다.
++aios_mirror_masked=""
++if [[ -n ${AIOS_NO_OFFLINE_MIRROR:-} ]]; then
++  echo "[AI-OS] 오프라인 미러 크기: $(du -sb "$offline_mirror_dir" 2>/dev/null | cut -f1) 바이트"
++  aios_empty=$(mktemp -d)
++  {
++    echo "AI-OS 빌드는 오프라인 설치 미러를 싣지 않는다."
++    echo "이 USB 는 호스트 디스크에 설치하지 않는 라이브 전용이다."
++  } > "$aios_empty/README.AI-OS"
++  if mount --bind "$aios_empty" "$offline_mirror_dir"; then
++    aios_mirror_masked=1
++    echo "[AI-OS] 오프라인 미러를 가렸다 (캐시는 보존)"
++  else
++    echo "[AI-OS] 경고: bind mount 실패 - 미러가 그대로 실린다" >&2
++  fi
++fi
++
+ mkarchiso -v -w "$build_cache_dir/work/" -o /out/ "$build_cache_dir/"
+ 
++if [[ -n $aios_mirror_masked ]]; then
++  umount "$offline_mirror_dir" && echo "[AI-OS] 미러 가림 해제 - 캐시 복원됨"
++fi
++
+ # Match host UID/GID on output.
+ if [[ -n $HOST_UID && -n $HOST_GID ]]; then
+   chown -R "$HOST_UID:$HOST_GID" /out/
