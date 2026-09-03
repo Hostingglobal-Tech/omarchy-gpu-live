@@ -1,5 +1,7 @@
 # AI-OS
 
+![AI-OS](docs/img/hero.png)
+
 **USB 하나 꽂으면 GPU가 그냥 잡히는 리눅스.**
 
 [Omarchy](https://omarchy.org) (Hyprland 기반 Arch Linux) 위에 만든 라이브 ISO 입니다.
