@@ -1,6 +1,6 @@
 # AI-OS — GPU 가 그냥 잡히는 Omarchy 라이브 USB
 
-![AI-OS](docs/img/hero-omarchy.png)
+![AI-OS](docs/img/hero-desktop.png)
 
 **[Omarchy Linux](https://omarchy.org) 를 그대로 쓰되, GPU 와 한글만 손봤습니다.**
 
