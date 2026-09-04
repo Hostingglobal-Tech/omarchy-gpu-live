@@ -86,13 +86,15 @@ fn mirror_session() -> bool {
 }
 
 /// tty1 은 설치기가 쓴다(archiso 가 root 를 자동로그인시켜 마법사를 띄운다).
+/// ★Relogin=true — 라이브라 세션이 죽으면 다시 자동로그인해야 한다.
+///   false 면 비밀번호 화면에 갇힌다(비번은 빈 값이지만 쓰는 사람은 모른다).
 /// sddm 은 표준대로 tty1 을 가진다. 설치 마법사는 tty2 로 옮겼다
 /// (getty@tty2 자동로그인 + .automated_script.sh 의 tty 조건 패치).
 fn write_autologin() -> Result<(), String> {
     fs::create_dir_all(SDDM_DIR).map_err(|e| format!("{SDDM_DIR}: {e}"))?;
     let path = format!("{SDDM_DIR}/99-aios-autologin.conf");
     let body = format!(
-        "[Autologin]\nUser={USER}\nSession={SESSION}\nRelogin=false\n\n\
+        "[Autologin]\nUser={USER}\nSession={SESSION}\nRelogin=true\n\n\
          [Users]\nRememberLastUser=true\nRememberLastSession=true\n"
     );
     fs::write(&path, body).map_err(|e| format!("{path}: {e}"))?;

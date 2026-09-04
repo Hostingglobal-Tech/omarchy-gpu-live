@@ -68,7 +68,11 @@ overlay: build patch
 # 부팅한 라이브를 SSH 로 들어가 고칠 수 있어야 한다. 없으면 화면 사진으로만
 # 진단해야 하고, 그 값이 실제로 컸다(2026-08-24 시연 준비에서 확인).
 	install -Dm700 -d $(AIR)/root/.ssh
-	install -Dm600 aios-assets/ssh/root_authorized_keys $(AIR)/root/.ssh/authorized_keys
+# ★공개판에는 우리 SSH 키를 넣지 않는다 — 남의 라이브 USB 가 우리 키를
+#   받아들이면 안 된다. 그래서 이 파일은 공개 저장소에 없고, 없으면 건너뛴다.
+#   (없이도 sshd 는 뜬다. 쓰는 사람이 자기 키를 넣으면 된다.)
+#   전에는 필수라 공개 저장소를 클론하면 빌드가 여기서 죽었다(2026-09-04 실측).
+	@[ -f aios-assets/ssh/root_authorized_keys ] && install -Dm600 aios-assets/ssh/root_authorized_keys $(AIR)/root/.ssh/authorized_keys || echo '  (SSH 키 없음 - 공개판이라 건너뛴다)'
 # archiso 기본 sudoers 는 aios 에게 asdcontrol 둘만 준다 - 부팅 후 아무것도 못 고친다.
 	install -Dm440 aios-assets/sudoers/99-aios $(AIR)/etc/sudoers.d/99-aios
 # tailscale 인증키. repo 에는 없다(.secrets/ 는 gitignore) - 있으면 굽고 없으면
@@ -155,6 +159,52 @@ overlay: build patch
 #   modprobe.blacklist=nvidia_drm 은 RTX 5060/5070 에서 화면이 검게 나오는 것을 막는다.
 #   CUDA(nvidia/nvidia_uvm)는 그대로 살아 nvidia-smi 도 정상이다.
 	@for f in $(ISO_SRC)/configs/grub/grub.cfg $(ISO_SRC)/configs/grub/loopback.cfg; do [ -f $$f ] && { sed -i 's/^timeout=0/timeout=10/; s/^timeout_style=hidden/timeout_style=menu/' $$f; sed -i '/^\s*linux .*INSTALL_DIR/{/memtest/!{/modprobe.blacklist=nvidia_drm/!{s/ quiet splash//; s/$$/ modprobe.blacklist=nvidia_drm/}}}' $$f; }; done
+# 메뉴 제목 — 처음 보는 사람이 '설치하는 건가' 하고 놀라지 않게 한다.
+#   ★2026-09-04 사장님 지시: 'Arch Linux' 'Omarchy' 대신 AI-OS 로 보이게 하라.
+#   영문을 앞에 둔다 — 부트로더 폰트가 한글을 못 그릴 때도 뜻이 남아야 한다.
+	@for f in $(ISO_SRC)/configs/grub/grub.cfg $(ISO_SRC)/configs/grub/loopback.cfg; do [ -f $$f ] && sed -i 's/^menuentry "Omarchy (%ARCH%/menuentry "AI-OS Live - no install, your disk is untouched (%ARCH%/; s/^menuentry "Omarchy with speakup/menuentry "AI-OS Live with speakup/' $$f; done
+# ★BIOS(syslinux) 경로도 같은 수리를 받는다. 이것이 빠져 있었다.
+#   ENTRIES 에는 syslinux 가 들어 있는데 위 루프가 grub 둘만 돌아서,
+#   BIOS 로 부팅한 사람은 (a) 'install medium' 이라는 겁나는 문구를 보고
+#   (b) RTX 검은화면 수리를 못 받았다. 2026-09-04 PC방에서 실제로 겪었다.
+#   한글을 쓰지 않는다 — syslinux 는 텍스트 부트로더라 폰트가 없다.
+	@for f in $(ISO_SRC)/configs/syslinux/archiso_sys-linux.cfg $(ISO_SRC)/configs/syslinux/archiso_pxe-linux.cfg; do \
+	  [ -f $$f ] && { \
+	    sed -i 's/Omarchy install medium/AI-OS Live [no install]/' $$f; \
+	    sed -i 's|^Boot the Omarchy install medium on BIOS\.$$|Boot AI-OS Live from this USB. Nothing is installed.|' $$f; \
+	    sed -i 's|^Boot the Omarchy install medium on BIOS with speakup screen reader\.$$|Boot AI-OS Live with speakup screen reader. Nothing is installed.|' $$f; \
+	    sed -i 's|^Boot the Omarchy install medium on PXE\.$$|Boot AI-OS Live over the network. Nothing is installed.|' $$f; \
+	    sed -i 's|^It allows you to install Omarchy or perform system maintenance\.$$|Your hard disk is NOT touched. Power off and it is gone.|' $$f; \
+	    sed -i 's|^It allows you to install Omarchy or perform system maintenance with speech feedback\.$$|Your hard disk is NOT touched. Speech feedback on.|' $$f; \
+	    sed -i '/^APPEND/{/modprobe.blacklist=nvidia_drm/!s/$$/ modprobe.blacklist=nvidia_drm/}' $$f; \
+	  }; \
+	done
+# 부팅 배경 이미지 — arch linux 로고 대신 AI-OS (2026-09-04 사장님 지시)
+#   "첨보는 사람들이 보고 아리송해 하잖아" — 무엇인지 화면에서 바로 알게 한다.
+#   640x480 고정. 중앙은 메뉴 상자가 덮으므로 비워 둔 배치다.
+#   다시 만들려면 aios-assets/boot/mksplash.sh
+	@[ -f aios-assets/boot/splash.png ] && install -Dm644 aios-assets/boot/splash.png $(ISO_SRC)/configs/syslinux/splash.png || true
+# 설치 마법사 자동기동 차단 (2026-09-04)
+#   getty@tty2 자동로그인 -> zsh -> /root/.zlogin -> .automated_script.sh -> configurator.
+#   그 사슬의 첫 칸을 커널에서 끊는다. squashfs 를 안 건드리므로 재조립만으로도 먹는다.
+#   ★상류 .zlogin 은 우리 오버레이에 없어서 releng 것이 그대로 구워진다 —
+#     그래서 아래 빈 .zlogin 을 함께 얹어 두 겹으로 막는다.
+	@for f in $(ISO_SRC)/configs/grub/grub.cfg $(ISO_SRC)/configs/grub/loopback.cfg; do \
+	  [ -f $$f ] && sed -i '/^\s*linux .*INSTALL_DIR/{/memtest/!{/systemd.mask=getty@tty2/!s/$$/ systemd.mask=getty@tty2.service/}}' $$f; \
+	done
+	@for f in $(ISO_SRC)/configs/syslinux/archiso_sys-linux.cfg $(ISO_SRC)/configs/syslinux/archiso_pxe-linux.cfg; do \
+	  [ -f $$f ] && sed -i '/^APPEND/{/systemd.mask=getty@tty2/!s/$$/ systemd.mask=getty@tty2.service/}' $$f; \
+	done
+	@mkdir -p $(AIR)/root && printf '%s\n' '# AI-OS: 라이브 전용이다. 상류 releng 의 .zlogin 이 설치 마법사를 띄우므로 비워 덮는다.' > $(AIR)/root/.zlogin
+# 마무리: 일괄치환이 남긴 어색한 문장을 다듬는다
+	@for f in $(ISO_SRC)/configs/syslinux/archiso_sys-linux.cfg $(ISO_SRC)/configs/syslinux/archiso_pxe-linux.cfg; do \
+	  [ -f $$f ] && { \
+	    sed -i 's|^Boot the AI-OS Live \[no install\] on BIOS\.$$|Boot AI-OS Live from this USB. Nothing is installed.|' $$f; \
+	    sed -i 's|^Boot the AI-OS Live \[no install\] on BIOS with speakup screen reader\.$$|Boot AI-OS Live with speakup screen reader. Nothing is installed.|' $$f; \
+	    sed -i 's|^Boot the AI-OS Live \[no install\] on PXE\.$$|Boot AI-OS Live over the network. Nothing is installed.|' $$f; \
+	  }; \
+	done
+	@[ -f $(ISO_SRC)/configs/syslinux/archiso_head.cfg ] && sed -i 's/^MENU TITLE Omarchy$$/MENU TITLE AI-OS Live - runs from USB, does not touch your disk/' $(ISO_SRC)/configs/syslinux/archiso_head.cfg || true
 # 한글 입력 기동 배선. omarchy 소유 파일을 고쳐야 해서 airootfs 선배치는
 # pacman 파일충돌을 낸다 - alpm PostTransaction 훅으로 설치 뒤에 손댄다.
 	install -Dm755 aios-assets/hangul/aios-hangul-wire $(AIR)/usr/local/bin/aios-hangul-wire
