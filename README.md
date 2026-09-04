@@ -163,18 +163,45 @@ ISO 가 커서 GitHub 릴리스에 **2GB 씩 나눠** 올렸습니다.
 
 ```
 # Linux / macOS
-cat aios.iso.part* > aios.iso
-sha256sum -c aios.iso.sha256
+cat aios-public-*.iso.part* > aios.iso
+sha256sum -c aios-public-*.iso.sha256
+```
 
-# Windows (PowerShell)
-cmd /c copy /b aios.iso.part00+aios.iso.part01+... aios.iso
+```powershell
+# Windows (PowerShell) — 릴리스 페이지의 조각을 전부 받은 폴더에서
+cmd /c "copy /b aios-public-20260904c.iso.part00+aios-public-20260904c.iso.part01+aios-public-20260904c.iso.part02+aios-public-20260904c.iso.part03 aios.iso"
+Get-FileHash aios.iso -Algorithm SHA256
 ```
 
 합친 뒤 반드시 **체크섬을 확인**하세요. 한 조각이라도 덜 받으면 부팅이 안 됩니다.
 
 ---
 
-## 7. 자주 묻는 것
+## 7. 부팅한 뒤 데스크톱이 허전하면
+
+라이브 세션에서는 터미널 맨 위에 이런 오류가 뜨고, 배경화면과 상단 바가 안 나올 수 있습니다.
+
+```
+error: foot: ~/.config/foot/foot.ini:2: [main].include:
+  ~/.local/state/omarchy/current/theme/foot.ini: failed to open
+```
+
+원인은 하나입니다. Omarchy 는 테마를 `~/.local/state/omarchy/current/` 에 두는데
+그 디렉토리는 **설치 과정에서** `omarchy-theme-set` 이 만듭니다.
+라이브 세션은 설치를 거치지 않으므로 없습니다.
+
+보정 스크립트를 한 번 실행하면 됩니다.
+
+```bash
+curl -O https://raw.githubusercontent.com/Hostingglobal-Tech/omarchy-gpu-live/main/patches/aios-live-fix.sh
+chmod +x aios-live-fix.sh
+./aios-live-fix.sh
+```
+
+테마·배경화면·상단 바가 서고, 150초 뒤 화면을 덮는 화면보호기도 함께 끕니다.
+무엇을 하는지는 [patches/aios-live-fix.sh](patches/aios-live-fix.sh) 에 전부 적혀 있습니다.
+
+## 8. 자주 묻는 것
 
 **Q. 설치하는 건가요?**
 아니요. USB 로 부팅해서 씁니다. 하드디스크를 건드리지 않습니다.
@@ -224,7 +251,7 @@ Omarchy 와 Arch Linux 의 라이선스를 따릅니다. NVIDIA 드라이버는 
 
 ---
 
-## 8. 직접 빌드하기
+## 9. 직접 빌드하기
 
 ```
 git clone <이 저장소>
