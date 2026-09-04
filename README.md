@@ -2,6 +2,12 @@
 
 ![AI-OS](docs/img/hero-desktop.png)
 
+### 부팅부터 데스크톱까지 — 실제 화면입니다
+
+![AI-OS 부팅 데모](docs/img/aios-demo.gif)
+
+USB 로 부팅 → OMARCHY 로그인 → 한글 데스크톱. 실기 화면이고, 기다리는 구간만 빨리 감았습니다.
+
 **[Omarchy Linux](https://omarchy.org) 를 그대로 쓰되, GPU 와 한글만 손봤습니다.**
 
 Omarchy 는 DHH(Ruby on Rails 만든 사람)가 만든 Arch Linux + Hyprland 배포판입니다.
